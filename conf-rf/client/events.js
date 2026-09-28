@@ -94,8 +94,10 @@ document.addEventListener('click', e => {
       seed(); session = null;
       localStorage.removeItem(LS_SES);
       myFilter.search = ''; myFilter.status = 'Все';
+      myFilter.dateFrom = ''; myFilter.dateTo = '';
       mySort.column = null; mySort.dir = 'asc';
       adminSort.column = null; adminSort.dir = 'asc';
+      ADMIN_ONLY_PAGES_RESET();
       go('home');
       toast('Демо-данные восстановлены', 'ok');
       break;
@@ -110,7 +112,7 @@ document.addEventListener('click', e => {
       break;
     }
 
-    /* --- Сортировка --- */
+    /* --- Сортировки --- */
     case 'sort-my': {
       const col = el.dataset.col;
       if (mySort.column === col) mySort.dir = mySort.dir === 'asc' ? 'desc' : 'asc';
@@ -125,13 +127,71 @@ document.addEventListener('click', e => {
       renderAll();
       break;
     }
+
+    /* --- Фильтр по датам --- */
+    case 'reset-date-filter': {
+      myFilter.dateFrom = '';
+      myFilter.dateTo = '';
+      renderMy();
+      break;
+    }
+
+    /* --- Экспорт в Excel --- */
+    case 'export-bookings': {
+      const src = el.dataset.source;
+      let list, name;
+
+      if (src === 'my') {
+        list = getMyFilteredBookings();
+        name = 'Мои_заявки';
+      } else {
+        list = [...db.bookings];
+        if (adminSort.column) list = sortBookings(list, adminSort);
+        else list.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        name = 'Все_заявки';
+      }
+
+      if (!list.length) {
+        toast('Нечего выгружать — список пуст', 'err');
+        break;
+      }
+
+      const date = new Date().toISOString().slice(0, 10);
+      if (typeof exportBookingsToCSV === 'function') {
+        exportBookingsToCSV(list, `${name}_${date}.csv`);
+        toast(`Выгружено заявок: ${list.length}`, 'ok');
+      } else {
+        toast('Функция экспорта не найдена — проверьте utils.js', 'err');
+      }
+      break;
+    }
+
+    /* --- Глобальный поиск --- */
+    case 'gr-go': {
+      const type = el.dataset.type;
+      const id   = +el.dataset.id;
+      const box = document.getElementById('globalResults');
+      const inp = document.getElementById('globalSearch');
+      if (box) box.classList.remove('show');
+      if (inp) inp.value = '';
+
+      if (type === 'booking') {
+        myFilter.search = ''; myFilter.status = 'Все';
+        myFilter.dateFrom = ''; myFilter.dateTo = '';
+        go('my');
+      }
+      if (type === 'room') go('rooms');
+      if (type === 'user' && currentUser() && currentUser().is_admin) go('admin');
+      break;
+    }
   }
 });
 
-/* Сбрасывает админскую страницу при выходе */
 function ADMIN_ONLY_PAGES_RESET() {
-  const i = PAGES.findIndex(p => p.id === 'er');
-  if (i >= 0) PAGES.splice(i, 1);
+  if (typeof PAGES !== 'undefined') {
+    const i = PAGES.findIndex(p => p.id === 'er');
+    if (i >= 0) PAGES.splice(i, 1);
+  }
   window.__adminLoaded = false;
   const er = document.getElementById('page-er');
   if (er) er.remove();
@@ -148,7 +208,9 @@ document.addEventListener('change', e => {
     b.status = el.value;
     saveDB();
     toast(`Заявка №${b.id}: «${old}» → «${b.status}»`, 'ok');
-    if (old !== b.status) sendStatusEmail(b, old, b.status);
+    if (old !== b.status && typeof sendStatusEmail === 'function') {
+      sendStatusEmail(b, old, b.status);
+    }
     renderNav();
     renderAll();
     return;
@@ -169,17 +231,65 @@ document.addEventListener('change', e => {
 
 document.addEventListener('input', e => {
   if (e.target.id === 'rPhone') e.target.value = maskPhone(e.target.value);
+
   if (e.target.id === 'mySearch') {
     myFilter.search = e.target.value;
     renderMyTable();
   }
+  if (e.target.id === 'myDateFrom') {
+    myFilter.dateFrom = e.target.value;
+    renderMyTable();
+  }
+  if (e.target.id === 'myDateTo') {
+    myFilter.dateTo = e.target.value;
+    renderMyTable();
+  }
+
+  if (e.target.id === 'globalSearch') {
+    showGlobalResults(e.target.value);
+  }
 });
 
+/* Закрытие выпадающего списка глобального поиска при клике вне */
+document.addEventListener('click', e => {
+  const box = document.getElementById('globalResults');
+  const inp = document.getElementById('globalSearch');
+  if (!box || !inp) return;
+  if (!box.contains(e.target) && e.target !== inp) box.classList.remove('show');
+});
+
+/* Функция отображения глобальных результатов */
+function showGlobalResults(text) {
+  const box = document.getElementById('globalResults');
+  if (!box) return;
+
+  if (typeof queryGlobalSearch !== 'function') return;
+
+  const list = queryGlobalSearch(text);
+  if (!text.trim() || text.trim().length < 2) {
+    box.classList.remove('show');
+    box.innerHTML = '';
+    return;
+  }
+  if (!list.length) {
+    box.innerHTML = '<div class="gr-empty">Ничего не найдено</div>';
+    box.classList.add('show');
+    return;
+  }
+  box.innerHTML = list.map(r => `
+    <div class="gr-item" data-action="gr-go" data-type="${r.type}" data-id="${r.id}">
+      <div><b>${typeof highlightMatch === 'function' ? highlightMatch(r.title, text) : esc(r.title)}</b></div>
+      <div class="gr-sub">${typeof highlightMatch === 'function' ? highlightMatch(r.sub, text) : esc(r.sub)}</div>
+    </div>`).join('');
+  box.classList.add('show');
+}
+
+/* --- Отправка форм --- */
 document.addEventListener('submit', e => {
   const form = e.target;
   e.preventDefault();
 
-  /* --- Авторизация --- */
+  /* Авторизация */
   if (form.id === 'loginForm') {
     const login = $('#lLogin').value.trim();
     const pass  = $('#lPass').value;
@@ -194,13 +304,13 @@ document.addEventListener('submit', e => {
     session = u.id;
     localStorage.setItem(LS_SES, String(u.id));
     closeModal();
-    if (u.is_admin) loadAdminScript();
+    if (u.is_admin && typeof loadAdminScript === 'function') loadAdminScript();
     renderNav(); renderAll();
     toast(`Добро пожаловать, ${u.full_name.split(' ')[1] || u.login}!`, 'ok');
     return;
   }
 
-  /* --- Регистрация --- */
+  /* Регистрация */
   if (form.id === 'registerForm') {
     const data = {
       login:     $('#rLogin').value.trim(),
@@ -232,7 +342,7 @@ document.addEventListener('submit', e => {
     return;
   }
 
-  /* --- Отзыв --- */
+  /* Отзыв */
   if (form.id === 'reviewForm') {
     const bid = +form.dataset.booking;
     const rating = $('#vRating').value;
@@ -256,7 +366,7 @@ document.addEventListener('submit', e => {
     return;
   }
 
-  /* --- Помещение --- */
+  /* Помещение */
   if (form.id === 'roomForm') {
     const name = $('#mName').value.trim();
     const cap  = $('#mCap').value;
@@ -283,7 +393,7 @@ document.addEventListener('submit', e => {
     return;
   }
 
-  /* --- Бронирование --- */
+  /* Бронирование */
   if (form.id === 'bookingForm') {
     const u = currentUser();
     if (!u) return toast('Требуется авторизация', 'err');

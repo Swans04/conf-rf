@@ -5,7 +5,7 @@
 function openModal(html){
   $('#modalRoot').innerHTML = `
     <div class="modal-back" data-action="close-modal-bg">
-      <div class="modal" onclick="event.stopPropagation()">${html}</div>
+      <div class="modal">${html}</div>
     </div>`;
 }
 

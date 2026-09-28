@@ -37,13 +37,14 @@ function go(page) {
 function renderNav() {
   const u = currentUser();
   const unread = (typeof unreadEmailsCount === 'function') ? unreadEmailsCount() : 0;
-
+  const activeCount = (typeof queryActiveBookingsCount === 'function') ? queryActiveBookingsCount() : 0;
   $('#nav').innerHTML = PAGES
     .filter(p => !p.adminOnly || (u && u.is_admin))
     .filter(p => !p.authOnly  || u)
     .map(p => {
-      const badge = (p.id === 'messages' && unread)
-        ? ` <span class="badge b-adm">${unread}</span>` : '';
+      let badge = '';
+      if (p.id === 'messages' && unread) badge = ` <span class="badge b-adm">${unread}</span>`;
+      if (p.id === 'booking'  && activeCount) badge = ` <span class="badge-live">${activeCount}</span>`;
       return `
         <button data-action="nav" data-page="${p.id}"
           class="${currentPage === p.id ? 'active' : ''}">
