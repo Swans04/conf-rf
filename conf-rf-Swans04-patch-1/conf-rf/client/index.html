@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#1c3f94">
+<meta name="description" content="Конференции.РФ — бронирование помещений для конференций">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<link rel="apple-touch-icon" href="icons/icon.svg">
+<title>Конференции.РФ — бронирование помещений для конференций</title>
+<link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <span class="flag"><i></i><i></i><i></i></span>
+      Конференции.РФ
+    </div>
+        <div class="global-search">
+      <input id="globalSearch" type="text" placeholder="Поиск…" autocomplete="off">
+      <div id="globalResults" class="global-results"></div>
+    </div>
+
+    <nav class="nav" id="nav"></nav>
+    <div id="netStatus" class="net-status" title="Состояние сети"></div>
+    <div class="auth-area" id="authArea"></div>
+  </div>
+</header>
+
+<main>
+  <section class="page active" id="page-home"></section>
+  <section class="page" id="page-rooms"></section>
+  <section class="page" id="page-equipment"></section>
+    <section class="page" id="page-passes"></section>
+  <section class="page" id="page-booking"></section>
+  <section class="page" id="page-my"></section>
+  <section class="page" id="page-reviews"></section>
+  <section class="page" id="page-messages"></section>
+  <section class="page" id="page-admin"></section>
+</main>
+
+<footer>
+  «Конференции.РФ» — информационная система бронирования помещений
+  для Всероссийских конференций
+</footer>
+
+<div id="toasts"></div>
+<div id="modalRoot"></div>
+<script src="utils.js"></script>
+<script src="db.js"></script>
+<script src="seed.js"></script>
+<script src="navigation.js"></script>
+<script src="render.js"></script>
+<script src="modals.js"></script>
+<script src="notify.js"></script>
+<script src="queries.js"></script>
+<script src="calendar.js"></script>
+<script src="events.js"></script>
+<script src="init.js"></script>
+</body>
+</html>

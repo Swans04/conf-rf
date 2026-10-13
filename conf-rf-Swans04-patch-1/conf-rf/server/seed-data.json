@@ -1,0 +1,107 @@
+{
+  "_комментарий": "Демонстрационные данные. Справочно, для наглядности. Рабочая копия этих же данных лежит в localStorage браузера и создаётся файлом client/seed.js.",
+
+  "users": [
+    {
+      "id": 1,
+      "login": "Conf2027",
+      "password": "(хеш)",
+      "full_name": "Администратор Портала",
+      "phone": "8(495)000-00-01",
+      "email": "admin@conf.rf",
+      "is_admin": true
+    },
+    {
+      "id": 2,
+      "login": "petrov01",
+      "password": "(хеш)",
+      "full_name": "Петров Пётр Петрович",
+      "phone": "8(812)222-33-44",
+      "email": "petrov@conf.rf",
+      "is_admin": false
+    },
+    {
+      "id": 3,
+      "login": "smirnova",
+      "password": "(хеш)",
+      "full_name": "Смирнова Анна Сергеевна",
+      "phone": "8(903)555-11-22",
+      "email": "smirnova@conf.rf",
+      "is_admin": false
+    }
+  ],
+
+  "rooms": [
+    { "id": 1, "name": "Аудитория 101",            "capacity": 120 },
+    { "id": 2, "name": "Аудитория 202",            "capacity": 60  },
+    { "id": 3, "name": "Коворкинг «Точка кипения»", "capacity": 80  },
+    { "id": 4, "name": "Кинозал «Октябрь»",        "capacity": 200 },
+    { "id": 5, "name": "Конференц-зал «Кремль»",   "capacity": 300 },
+    { "id": 6, "name": "Переговорная «Байкал»",    "capacity": 12  }
+  ],
+
+  "bookings": [
+    {
+      "id": 1,
+      "user_id": 2,
+      "room_id": 5,
+      "start_datetime": "+4 дня, 10:00",
+      "payment_method": "sbr",
+      "status": "Новая",
+      "created_at": "1 день назад"
+    },
+    {
+      "id": 2,
+      "user_id": 2,
+      "room_id": 1,
+      "start_datetime": "-12 дней, 12:00",
+      "payment_method": "offline",
+      "status": "Завершено",
+      "created_at": "15 дней назад"
+    },
+    {
+      "id": 3,
+      "user_id": 3,
+      "room_id": 6,
+      "start_datetime": "+7 дней, 15:30",
+      "payment_method": "offline",
+      "status": "Мероприятие назначено",
+      "created_at": "3 дня назад"
+    },
+    {
+      "id": 4,
+      "user_id": 1,
+      "room_id": 4,
+      "start_datetime": "-25 дней, 09:00",
+      "payment_method": "sbr",
+      "status": "Завершено",
+      "created_at": "30 дней назад"
+    },
+    {
+      "id": 5,
+      "user_id": 3,
+      "room_id": 2,
+      "start_datetime": "+2 дня, 14:00",
+      "payment_method": "sbr",
+      "status": "Новая",
+      "created_at": "1 час назад"
+    }
+  ],
+
+  "reviews": [
+    {
+      "id": 1,
+      "booking_id": 2,
+      "rating": 5,
+      "text": "Отличная аудитория, хорошая акустика и проектор. Персонал помог с настройкой оборудования.",
+      "created_at": "10 дней назад"
+    },
+    {
+      "id": 2,
+      "booking_id": 4,
+      "rating": 4,
+      "text": "Большой кинозал, всем хватило мест. Единственное — не хватало указателей на входе.",
+      "created_at": "22 дня назад"
+    }
+  ]
+}
