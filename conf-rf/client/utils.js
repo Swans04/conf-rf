@@ -149,3 +149,45 @@ function loadAdminScript() {
   };
   document.body.appendChild(s);
 }
+/* ============================================================================
+   ЭКСПОРТ ЗАЯВОК В EXCEL (CSV)
+   ============================================================================ */
+function exportBookingsToCSV(bookings, filename) {
+  const rows = [[
+    'ID', 'Пользователь', 'Логин', 'Помещение',
+    'Дата и время', 'Оплата', 'Статус', 'Создана', 'Отзыв'
+  ]];
+
+  bookings.forEach(b => {
+    const room = getRoom(b.room_id);
+    const usr  = getUser(b.user_id);
+    const rev  = getReviewByBooking(b.id);
+    rows.push([
+      b.id,
+      usr ? usr.full_name : '—',
+      usr ? usr.login : '',
+      room ? room.name : '—',
+      fmtDT(b.start_datetime),
+      PAYMENTS[b.payment_method] || b.payment_method,
+      b.status,
+      fmtDT(b.created_at),
+      rev ? rev.rating + '/5' : ''
+    ]);
+  });
+
+  const csv = rows.map(r => r.map(cell => {
+    const s = String(cell ?? '');
+    return '"' + s.replace(/"/g, '""') + '"';
+  }).join(';')).join('\r\n');
+
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}

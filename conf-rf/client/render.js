@@ -1,7 +1,7 @@
 /* ============================================================================
    РЕНДЕР СТРАНИЦ
    ============================================================================ */
-const myFilter  = { search: '', status: 'Все' };
+const myFilter  = { search: '', status: 'Все', dateFrom: '', dateTo: '' };
 const mySort    = { column: null, dir: 'asc' };
 const adminSort = { column: null, dir: 'asc' };
 
@@ -66,6 +66,23 @@ function renderHome() {
 
     <div class="grid c2">
       <div class="card">
+        <h3>Топ-5 помещений по числу заявок</h3>
+        <div id="topRoomsChart"></div>
+      </div>
+      <div class="card">
+        <h3>Топ-5 активных пользователей</h3>
+        <div id="topUsersList"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Загруженность по дням недели</h3>
+      <p class="muted small">В какие дни чаще всего проводятся мероприятия.</p>
+      <div id="weekdayChart" class="weekday-chart"></div>
+    </div>
+
+    <div class="grid c2">
+      <div class="card">
         <h3>Ближайшие мероприятия</h3>
         ${upcomingHTML(4)}
       </div>
@@ -85,6 +102,10 @@ function renderHome() {
       </div>
     </div>
   `;
+
+  if (typeof renderTopRoomsChart === 'function') renderTopRoomsChart();
+  if (typeof renderTopUsersList  === 'function') renderTopUsersList();
+  if (typeof renderWeekdayChart  === 'function') renderWeekdayChart();
 }
 
 function upcomingHTML(limit) {
@@ -251,15 +272,29 @@ function renderMy() {
     <h1>Мои заявки</h1>
     <p class="muted">Один пользователь может иметь много заявок.</p>
 
+    <div class="row" style="margin-bottom:14px;justify-content:space-between">
+      <div class="row">
+        <input id="mySearch" type="text" placeholder="Поиск по названию помещения"
+               value="${esc(myFilter.search)}" style="max-width:320px">
+        <select id="myStatus" style="max-width:240px">
+          <option value="Все"                   ${myFilter.status === 'Все'                   ? 'selected' : ''}>Все</option>
+          <option value="Новая"                 ${myFilter.status === 'Новая'                 ? 'selected' : ''}>Новая</option>
+          <option value="Мероприятие назначено" ${myFilter.status === 'Мероприятие назначено' ? 'selected' : ''}>Мероприятие назначено</option>
+          <option value="Завершено"             ${myFilter.status === 'Завершено'             ? 'selected' : ''}>Завершено</option>
+        </select>
+      </div>
+      <button class="btn btn-ghost btn-sm"
+              data-action="export-bookings" data-source="my">
+        📥 Выгрузить в Excel
+      </button>
+    </div>
+
     <div class="row" style="margin-bottom:14px">
-      <input id="mySearch" type="text" placeholder="Поиск по названию помещения"
-             value="${esc(myFilter.search)}" style="max-width:320px">
-      <select id="myStatus" style="max-width:240px">
-        <option value="Все"                   ${myFilter.status === 'Все'                   ? 'selected' : ''}>Все</option>
-        <option value="Новая"                 ${myFilter.status === 'Новая'                 ? 'selected' : ''}>Новая</option>
-        <option value="Мероприятие назначено" ${myFilter.status === 'Мероприятие назначено' ? 'selected' : ''}>Мероприятие назначено</option>
-        <option value="Завершено"             ${myFilter.status === 'Завершено'             ? 'selected' : ''}>Завершено</option>
-      </select>
+      <label style="margin:0">Дата с:</label>
+      <input type="date" id="myDateFrom" value="${myFilter.dateFrom || ''}" style="max-width:180px">
+      <label style="margin:0">по:</label>
+      <input type="date" id="myDateTo" value="${myFilter.dateTo || ''}" style="max-width:180px">
+      <button class="btn btn-ghost btn-sm" data-action="reset-date-filter">Сбросить</button>
     </div>
 
     <div id="myTableBlock"></div>
@@ -273,19 +308,7 @@ function renderMyTable() {
   const block = document.getElementById('myTableBlock');
   if (!u || !block) return;
 
-  let list = db.bookings.filter(b => b.user_id === u.id);
-
-  if (myFilter.status !== 'Все') list = list.filter(b => b.status === myFilter.status);
-  if (myFilter.search.trim()) {
-    const q = myFilter.search.trim().toLowerCase();
-    list = list.filter(b => {
-      const r = getRoom(b.room_id);
-      return r && r.name.toLowerCase().includes(q);
-    });
-  }
-
-  if (mySort.column) list = sortBookings(list, mySort);
-  else list = [...list].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  const list = getMyFilteredBookings();
 
   if (!list.length) {
     block.innerHTML = `<div class="card empty"><div class="big">🔍</div><p>Ничего не найдено</p></div>`;
@@ -331,6 +354,34 @@ function renderMyTable() {
     </div>`;
 }
 
+/* Возвращает список «Моих заявок» с учётом поиска, статуса, диапазона дат
+   и сортировки. Используется и для отрисовки таблицы, и для выгрузки в Excel. */
+function getMyFilteredBookings() {
+  const u = currentUser();
+  if (!u) return [];
+
+  let list = db.bookings.filter(b => b.user_id === u.id);
+
+  if (myFilter.status !== 'Все') list = list.filter(b => b.status === myFilter.status);
+
+  if (myFilter.search.trim()) {
+    const q = myFilter.search.trim().toLowerCase();
+    list = list.filter(b => {
+      const r = getRoom(b.room_id);
+      return r && r.name.toLowerCase().includes(q);
+    });
+  }
+
+  if (typeof queryBookingsByDateRange === 'function') {
+    list = queryBookingsByDateRange(list, myFilter.dateFrom, myFilter.dateTo);
+  }
+
+  if (mySort.column) list = sortBookings(list, mySort);
+  else list = [...list].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+  return list;
+}
+
 /* ------------------------------ ОТЗЫВЫ -------------------------------- */
 function renderReviews() {
   const list = [...db.reviews].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
@@ -344,6 +395,11 @@ function renderReviews() {
       <div class="stat"><div class="num">${list.length}</div><div class="lbl">Всего отзывов</div></div>
       <div class="stat"><div class="num">${avg}</div><div class="lbl">Средняя оценка</div></div>
       <div class="stat"><div class="num">${list.filter(r => r.rating === 5).length}</div><div class="lbl">Оценок «отлично»</div></div>
+    </div>
+
+    <div class="card">
+      <h3>Средний рейтинг по помещениям</h3>
+      <div id="avgRatingList"></div>
     </div>
 
     ${list.length ? `<div class="grid c2">
@@ -364,6 +420,8 @@ function renderReviews() {
       }).join('')}
     </div>` : `<div class="card empty"><div class="big">⭐</div><p>Отзывов пока нет.</p></div>`}
   `;
+
+  if (typeof renderAvgRatingList === 'function') renderAvgRatingList();
 }
 
 /* ------------------------------ СООБЩЕНИЯ ----------------------------- */
@@ -486,8 +544,16 @@ function renderAdmin() {
     </div>
 
     <div class="card">
-      <h3>Все заявки</h3>
-      <p class="muted small">При смене статуса пользователю отправляется письмо и уведомление в раздел «Сообщения».</p>
+      <div class="row" style="justify-content:space-between;align-items:flex-start">
+        <div>
+          <h3>Все заявки</h3>
+          <p class="muted small">При смене статуса пользователю отправляется письмо и уведомление в раздел «Сообщения».</p>
+        </div>
+        <button class="btn btn-ghost btn-sm"
+                data-action="export-bookings" data-source="admin">
+          📥 Выгрузить в Excel
+        </button>
+      </div>
       <div class="table-wrap">
         <table>
           <thead>
@@ -540,4 +606,4 @@ function renderAdmin() {
   `;
 
   if (typeof renderCalendarBlock === 'function') renderCalendarBlock();
-} 
+}

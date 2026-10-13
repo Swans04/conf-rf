@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#12295f"/>
+      <stop offset="50%" stop-color="#1c3f94"/>
+      <stop offset="100%" stop-color="#a8241a"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+  <g transform="translate(96, 140)">
+    <rect x="0" y="0" width="320" height="60" fill="#ffffff"/>
+    <rect x="0" y="60" width="320" height="60" fill="#1c3f94"/>
+    <rect x="0" y="120" width="320" height="60" fill="#d52b1e"/>
+  </g>
+  <text x="256" y="400" font-family="Arial, sans-serif" font-size="72" font-weight="700"
+        fill="#ffffff" text-anchor="middle" letter-spacing="2">К.РФ</text>
+</svg>
